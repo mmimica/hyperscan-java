@@ -40,6 +40,7 @@ public class ReclaimObjectsTest {
         }
 
         assertNull(ref.get(), "Database not reclaimed.");
+        Thread.sleep(100);
         assertEquals(0, Pointer.totalCount(), "Not all objects reclaimed");
         assertEquals(0, Pointer.totalBytes());
     }
