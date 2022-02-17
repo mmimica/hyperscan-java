@@ -84,9 +84,12 @@ public class Database implements Closeable {
     public static Database compile(List<Expression> expressions) throws CompileErrorException {
         final int expressionsSize = expressions.size();
 
-        String[] expressionArray = expressions.stream().map(Expression::getExpression).toArray(String[]::new);
+        BytePointer[] pointerArray = expressions.stream()
+                .map(Expression::getExpression)
+                .map(e -> new BytePointer(e, StandardCharsets.UTF_8))
+                .toArray(BytePointer[]::new);
         PointerPointer<BytePointer> nativeExpressions = new PointerPointer<>(expressionsSize);
-        nativeExpressions.putString(expressionArray, StandardCharsets.UTF_8);
+        nativeExpressions.put(pointerArray);
 
         int[] flags = new int[expressionsSize];
         int[] ids = new int[expressionsSize];
@@ -111,7 +114,8 @@ public class Database implements Closeable {
         try (
                 IntPointer nativeFlags = new IntPointer(flags);
                 IntPointer nativeIds = new IntPointer(ids);
-                PointerPointer<hs_compile_error_t> error = new PointerPointer<>(new hs_compile_error_t())) {
+                hs_compile_error_t nativeCompileError = new hs_compile_error_t();
+                PointerPointer<hs_compile_error_t> error = new PointerPointer<>(nativeCompileError)) {
 
             PointerPointer<NativeDatabase> database = new PointerPointer<>(1);
             int hsError = hs_compile_multi(nativeExpressions, nativeFlags, nativeIds, expressionsSize, HS_MODE_BLOCK, null, database, error);
@@ -119,6 +123,10 @@ public class Database implements Closeable {
             handleErrors(hsError, error.get(hs_compile_error_t.class), expressions);
 
             return new Database(database.get(NativeDatabase.class), expressions);
+        }
+        finally {
+            Arrays.stream(pointerArray).forEach(Pointer::close);
+            nativeExpressions.close();
         }
     }
 
