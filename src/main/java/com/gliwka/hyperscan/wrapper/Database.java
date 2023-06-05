@@ -114,10 +114,10 @@ public class Database implements Closeable {
         try (
                 IntPointer nativeFlags = new IntPointer(flags);
                 IntPointer nativeIds = new IntPointer(ids);
+                PointerPointer<NativeDatabase> database = new PointerPointer<>(1);
                 hs_compile_error_t nativeCompileError = new hs_compile_error_t();
                 PointerPointer<hs_compile_error_t> error = new PointerPointer<>(nativeCompileError)) {
 
-            PointerPointer<NativeDatabase> database = new PointerPointer<>(1);
             int hsError = hs_compile_multi(nativeExpressions, nativeFlags, nativeIds, expressionsSize, HS_MODE_BLOCK, null, database, error);
 
             handleErrors(hsError, error.get(hs_compile_error_t.class), expressions);
