@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -122,7 +123,7 @@ public class Scanner implements Closeable {
             throw new IllegalStateException("Scratch space has already been deallocated");
         }
 
-        final LinkedList<long[]> matchedIds = new LinkedList<>();
+        final List<long[]> matchedIds = new CopyOnWriteArrayList<>();
         try (final match_event_handler matchHandler = new match_event_handler() {
             public int call(int id, long from, long to, int flags, Pointer context) {
                 long[] tuple = {id, from, to};
