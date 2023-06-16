@@ -7,8 +7,8 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.SizeTPointer;
 
-import java.io.*;
-
+import java.io.Closeable;
+import java.lang.ref.Reference;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -139,6 +139,7 @@ public class Scanner implements Closeable {
         final byte[] bytes = input.getBytes(StandardCharsets.UTF_8);
         try (final BytePointer bytePointer = new BytePointer(ByteBuffer.wrap(bytes))) {
             int hsError = hs_scan(database, bytePointer, bytes.length, 0, scratch, matchHandler, null);
+            Reference.reachabilityFence(matchHandler);
 
             if (hsError != 0) {
                 throw HyperscanException.hsErrorToException(hsError);
