@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,11 +21,10 @@ public class ReclaimObjectsTest {
         // some reclaimable objects are left behind after compile
         assertEquals(1, Pointer.totalCount());
 
-        try (Scanner scanner = new Scanner()) {
-            scanner.allocScratch(db);
-            assertEquals(3, Pointer.totalCount());
+        try (Scanner scanner = new Scanner(db)) {
+            assertEquals(2, Pointer.totalCount());
             scanner.scan(db, "Test");
-            assertEquals(3, Pointer.totalCount());
+            assertEquals(2, Pointer.totalCount());
         }
         assertEquals(1, Pointer.totalCount());
 
