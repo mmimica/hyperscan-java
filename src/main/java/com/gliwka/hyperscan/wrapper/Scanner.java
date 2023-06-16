@@ -45,6 +45,11 @@ public class Scanner implements Closeable {
         count.incrementAndGet();
     }
 
+    public Scanner(Database db) {
+        this();
+        allocScratch(db);
+    }
+
 
     private static class NativeScratch extends hs_scratch_t {
         void registerDeallocator() {
