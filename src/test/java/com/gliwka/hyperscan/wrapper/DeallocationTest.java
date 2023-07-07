@@ -30,8 +30,7 @@ class DeallocationTest {
     void scrannerShouldThrowExceptionOnCallingSizeAfterClose() {
         try {
             Database db = Database.compile(new Expression("test"));
-            Scanner scanner = new Scanner();
-            scanner.allocScratch(db);
+            Scanner scanner = new Scanner(db);
             scanner.close();
             scanner.getSize();
             fail("We should not be able to call getSize on a deallocated scanner scratch space");

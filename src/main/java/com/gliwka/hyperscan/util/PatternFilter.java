@@ -58,8 +58,7 @@ public class PatternFilter implements Closeable {
         }
 
         database = Database.compile(expressions);
-        scanner = new Scanner();
-        scanner.allocScratch(database);
+        scanner = new Scanner(database);
     }
 
     /**

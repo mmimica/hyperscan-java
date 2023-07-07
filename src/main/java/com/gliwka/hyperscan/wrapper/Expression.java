@@ -1,12 +1,12 @@
 package com.gliwka.hyperscan.wrapper;
 
-import com.gliwka.hyperscan.jni.hs_compile_error_t;
-import com.gliwka.hyperscan.jni.hs_expr_info_t;
 import lombok.*;
+import org.bytedeco.hyperscan.hs_compile_error_t;
+import org.bytedeco.hyperscan.hs_expr_info_t;
 
 import java.util.EnumSet;
 
-import static com.gliwka.hyperscan.jni.hyperscan.*;
+import static org.bytedeco.hyperscan.global.hyperscan.hs_expression_info;
 
 
 /**
@@ -37,11 +37,11 @@ public class Expression {
     }
 
     public Expression(@NonNull String expression) {
-        this(expression,  EnumSet.of(ExpressionFlag.NO_FLAG), null);
+        this(expression, EnumSet.of(ExpressionFlag.NO_FLAG), null);
     }
 
     public Expression(@NonNull String expression, Integer id) {
-        this(expression,  EnumSet.of(ExpressionFlag.NO_FLAG), id);
+        this(expression, EnumSet.of(ExpressionFlag.NO_FLAG), id);
     }
 
     public Expression(@NonNull String expression, @NonNull EnumSet<ExpressionFlag> flags) {
@@ -66,14 +66,14 @@ public class Expression {
     }
 
     public ValidationResult validate() {
-        try(hs_expr_info_t info = new hs_expr_info_t(); hs_compile_error_t error = new hs_compile_error_t()) {
+        try (var info = new hs_expr_info_t();
+             hs_compile_error_t error = new hs_compile_error_t()) {
             int hsResult = hs_expression_info(this.expression, getFlagBits(), info, error);
 
-            if(hsResult != 0) {
+            if (hsResult != 0) {
                 return new ValidationResult(error.message().getString(), false);
 
-            }
-            else {
+            } else {
                 return new ValidationResult(true);
             }
 
@@ -83,8 +83,8 @@ public class Expression {
     int getFlagBits() {
         int bitValue = 0;
 
-        if(flags != null) {
-            for(BitFlag flag : flags) {
+        if (flags != null) {
+            for (BitFlag flag : flags) {
                 bitValue = flag.getBits() | bitValue;
             }
         }

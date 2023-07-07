@@ -12,6 +12,9 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class IntegrationTest {
+    static {
+        System.setProperty("org.bytedeco.javacpp.nopointergc", "true");
+    }
 
     @TestWithDatabaseRoundtrip
     void simpleSingleExpression(SerializeDatabase serialize) throws CompileErrorException, IOException {
@@ -21,17 +24,18 @@ class IntegrationTest {
         assertTrue(result.isValid());
         assertNull(result.getErrorMessage());
 
-        Database db = roundTrip(Database.compile(expression), serialize);
-        assertTrue(db.getSize() > 0);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "Dies ist ein Test tst.");
-        assertEquals(matches.size(), 2);
-        assertEquals(matches.get(0).getEndPosition(), 16);
-        assertEquals(matches.get(0).getStartPosition(), 13);
-        assertEquals(matches.get(0).getMatchedString(), "Test");
-        assertEquals(matches.get(0).getMatchedExpression(), expression);
-        assertTrue(scanner.getSize() > 0);
+        try (Database db = roundTrip(Database.compile(expression), serialize)) {
+            assertTrue(db.getSize() > 0);
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "Dies ist ein Test tst.");
+                assertEquals(matches.size(), 2);
+                assertEquals(matches.get(0).getEndPosition(), 16);
+                assertEquals(matches.get(0).getStartPosition(), 13);
+                assertEquals(matches.get(0).getMatchedString(), "Test");
+                assertEquals(matches.get(0).getMatchedExpression(), expression);
+                assertTrue(scanner.getSize() > 0);
+            }
+        }
 
 
         Expression invalidExpression = new Expression("test\\1", EnumSet.noneOf(ExpressionFlag.class));
@@ -44,41 +48,44 @@ class IntegrationTest {
 
     @TestWithDatabaseRoundtrip
     void simpleMultiExpression(SerializeDatabase serialize) throws CompileErrorException, IOException {
-        LinkedList<Expression> expressions = new LinkedList<Expression>();
+        LinkedList<Expression> expressions = new LinkedList<>();
 
         EnumSet<ExpressionFlag> flags = EnumSet.of(ExpressionFlag.CASELESS, ExpressionFlag.SOM_LEFTMOST);
 
         expressions.add(new Expression("Te?st", flags));
         expressions.add(new Expression("ist", flags));
 
-        Database db = roundTrip(Database.compile(expressions), serialize);
-        assertTrue(db.getSize() > 0);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "Dies ist ein Test tst.");
-        assertEquals(3, matches.size());
-        assertEquals(7, matches.get(0).getEndPosition());
-        assertEquals(5, matches.get(0).getStartPosition());
-        assertEquals("ist", matches.get(0).getMatchedString());
-        assertEquals(expressions.get(1), matches.get(0).getMatchedExpression());
-        assertTrue(scanner.getSize() > 0);
+        try (Database db = roundTrip(Database.compile(expressions), serialize)) {
+            assertTrue(db.getSize() > 0);
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "Dies ist ein Test tst.");
+                assertEquals(3, matches.size());
+                assertEquals(7, matches.get(0).getEndPosition());
+                assertEquals(5, matches.get(0).getStartPosition());
+                assertEquals("ist", matches.get(0).getMatchedString());
+                assertEquals(expressions.get(1), matches.get(0).getMatchedExpression());
+                assertTrue(scanner.getSize() > 0);
+            }
+        }
     }
 
     @TestWithDatabaseRoundtrip
     void expressionWithId(SerializeDatabase serialize) throws CompileErrorException, IOException {
-        Database db = roundTrip(Database.compile(new Expression("test", 17)), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "12345 test string");
-        assertEquals(17, matches.get(0).getMatchedExpression().getId());
+        try (Database db = roundTrip(Database.compile(new Expression("test", 17)), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "12345 test string");
+                assertEquals(17, matches.get(0).getMatchedExpression().getId());
+            }
+        }
     }
 
     @TestWithDatabaseRoundtrip
     void infiniteRegex(SerializeDatabase serialize) throws CompileErrorException, IOException {
-        Database db = roundTrip(Database.compile(new Expression("a|", EnumSet.of(ExpressionFlag.ALLOWEMPTY))), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "12345 test string");
+        try (Database db = roundTrip(Database.compile(new Expression("a|", EnumSet.of(ExpressionFlag.ALLOWEMPTY))), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "12345 test string");
+            }
+        }
     }
 
     @Test
@@ -88,27 +95,29 @@ class IntegrationTest {
 
     @TestWithDatabaseRoundtrip
     void emptyStringMatch(SerializeDatabase serialize) throws CompileErrorException, IOException {
-        Database db = roundTrip(Database.compile(new Expression(".*", ExpressionFlag.ALLOWEMPTY)), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        final List<Match> matcher = scanner.scan(db, "");
-        assertTrue(matcher.size() > 0);
-        assertEquals("", matcher.get(0).getMatchedString());
+        try (Database db = roundTrip(Database.compile(new Expression(".*", ExpressionFlag.ALLOWEMPTY)), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                final List<Match> matcher = scanner.scan(db, "");
+                assertTrue(matcher.size() > 0);
+                assertEquals("", matcher.get(0).getMatchedString());
+            }
+        }
     }
 
     @TestWithDatabaseRoundtrip
     void emptyStringNoMatch(SerializeDatabase serialize) throws CompileErrorException, IOException {
-        Database db = roundTrip(Database.compile(new Expression(".+", ExpressionFlag.ALLOWEMPTY)), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        final List<Match> matcher = scanner.scan(db, "");
-        assertTrue(matcher.isEmpty());
+        try (Database db = roundTrip(Database.compile(new Expression(".+", ExpressionFlag.ALLOWEMPTY)), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                final List<Match> matcher = scanner.scan(db, "");
+                assertTrue(matcher.isEmpty());
+            }
+        }
     }
 
     @Test
     void readmeExample() {
         //we define a list containing all of our expressions
-        LinkedList<Expression> expressions = new LinkedList<Expression>();
+        LinkedList<Expression> expressions = new LinkedList<>();
 
         //the first argument in the constructor is the regular pattern, the latter one is a expression flag
         //make sure you read the original hyperscan documentation to learn more about flags
@@ -124,11 +133,7 @@ class IntegrationTest {
         try (Database db = Database.compile(expressions)) {
             //initialize scanner - one scanner per thread!
             //same here, always use try-with-resources or call the close method after use
-            try (Scanner scanner = new Scanner()) {
-                //allocate scratch space matching the passed database
-                scanner.allocScratch(db);
-
-
+            try (Scanner scanner = new Scanner(db)) {
                 //provide the database and the input string
                 //returns a list with matches
                 //synchronized method, only one execution at a time (use more scanner instances for multithreading)
@@ -163,24 +168,26 @@ class IntegrationTest {
     @TestWithDatabaseRoundtrip
     void chineseUTF8(SerializeDatabase serialize) throws CompileErrorException, IOException {
         Expression expr = new Expression("测试", EnumSet.of(ExpressionFlag.UTF8));
-        Database db = roundTrip(Database.compile(expr), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "这是一个测试");
+        try (Database db = roundTrip(Database.compile(expr), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "这是一个测试");
 
-        assertEquals(1, matches.size());
+                assertEquals(1, matches.size());
+            }
+        }
     }
 
     @TestWithDatabaseRoundtrip
     void utf8MatchedString(SerializeDatabase serialize) throws CompileErrorException, IOException {
         Expression expr = new Expression("\\d{5}", EnumSet.of(ExpressionFlag.SOM_LEFTMOST, ExpressionFlag.UTF8));
-        Database db = roundTrip(Database.compile(expr), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "58744 78524 \uD83D\uDE00The quick brown fox ◌\uD804\uDD00 jumps 06840 over the lazy dog༼؈");
-        assertEquals("06840", matches.get(2).getMatchedString());
-        assertEquals(44, matches.get(2).getStartPosition());
-        assertEquals(48, matches.get(2).getEndPosition());
+        try (Database db = roundTrip(Database.compile(expr), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "58744 78524 \uD83D\uDE00The quick brown fox ◌\uD804\uDD00 jumps 06840 over the lazy dog༼؈");
+                assertEquals("06840", matches.get(2).getMatchedString());
+                assertEquals(44, matches.get(2).getStartPosition());
+                assertEquals(48, matches.get(2).getEndPosition());
+            }
+        }
     }
 
     @TestWithDatabaseRoundtrip
@@ -208,29 +215,30 @@ class IntegrationTest {
 
         List<Expression> expressions = buildExpressions(expressionStrings, flags);
 
-        Database db = roundTrip(Database.compile(expressions), serialize);
-        Scanner scanner = new Scanner();
-        scanner.allocScratch(db);
-        List<Match> matches = scanner.scan(db, "abbdefxxfoobarrrghabcxdefxteakettleeeeexxxxijklmxxdef");
-        //01234567890123456789012345678901234567890123456789012
-        assertEquals(17, matches.size());
-        assertMatch(17, expressionStrings.get(6), matches.get(0));
-        assertMatch(20, expressionStrings.get(5), matches.get(1));
-        assertMatch(20, expressionStrings.get(6), matches.get(2));
-        assertMatch(24, expressionStrings.get(5), matches.get(3));
-        assertMatch(24, expressionStrings.get(6), matches.get(4));
-        assertMatch(37, expressionStrings.get(3), matches.get(5));
-        assertMatch(37, expressionStrings.get(5), matches.get(6));
-        assertMatch(37, expressionStrings.get(7), matches.get(7));
-        assertMatch(38, expressionStrings.get(3), matches.get(8));
-        assertMatch(38, expressionStrings.get(5), matches.get(9));
-        assertMatch(38, expressionStrings.get(7), matches.get(10));
-        assertMatch(47, expressionStrings.get(5), matches.get(11));
-        assertMatch(47, expressionStrings.get(6), matches.get(12));
-        assertMatch(47, expressionStrings.get(7), matches.get(13));
-        assertMatch(52, expressionStrings.get(5), matches.get(14));
-        assertMatch(52, expressionStrings.get(6), matches.get(15));
-        assertMatch(52, expressionStrings.get(7), matches.get(16));
+        try (Database db = roundTrip(Database.compile(expressions), serialize)) {
+            try (Scanner scanner = new Scanner(db)) {
+                List<Match> matches = scanner.scan(db, "abbdefxxfoobarrrghabcxdefxteakettleeeeexxxxijklmxxdef");
+                //01234567890123456789012345678901234567890123456789012
+                assertEquals(17, matches.size());
+                assertMatch(17, expressionStrings.get(6), matches.get(0));
+                assertMatch(20, expressionStrings.get(5), matches.get(1));
+                assertMatch(20, expressionStrings.get(6), matches.get(2));
+                assertMatch(24, expressionStrings.get(5), matches.get(3));
+                assertMatch(24, expressionStrings.get(6), matches.get(4));
+                assertMatch(37, expressionStrings.get(3), matches.get(5));
+                assertMatch(37, expressionStrings.get(5), matches.get(6));
+                assertMatch(37, expressionStrings.get(7), matches.get(7));
+                assertMatch(38, expressionStrings.get(3), matches.get(8));
+                assertMatch(38, expressionStrings.get(5), matches.get(9));
+                assertMatch(38, expressionStrings.get(7), matches.get(10));
+                assertMatch(47, expressionStrings.get(5), matches.get(11));
+                assertMatch(47, expressionStrings.get(6), matches.get(12));
+                assertMatch(47, expressionStrings.get(7), matches.get(13));
+                assertMatch(52, expressionStrings.get(5), matches.get(14));
+                assertMatch(52, expressionStrings.get(6), matches.get(15));
+                assertMatch(52, expressionStrings.get(7), matches.get(16));
+            }
+        }
     }
 
     private void assertMatch(int expectedEndPosition, String expectedExpression, Match actualMatch) {

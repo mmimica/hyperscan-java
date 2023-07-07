@@ -34,8 +34,7 @@ public class PerformanceRegressionBenchmark {
     public static class ThreadState {
         public Scanner scanner;
         {
-            scanner = new Scanner();
-            scanner.allocScratch(db);
+            scanner = new Scanner(db);
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.gliwka.hyperscan.wrapper;
 
-import com.gliwka.hyperscan.jni.hs_compile_error_t;
-import com.gliwka.hyperscan.jni.hs_database_t;
+import org.bytedeco.hyperscan.hs_compile_error_t;
+import org.bytedeco.hyperscan.hs_database_t;
 import org.bytedeco.javacpp.*;
 
 import java.io.*;
@@ -11,9 +11,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.gliwka.hyperscan.jni.hyperscan.*;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
+import static org.bytedeco.hyperscan.global.hyperscan.*;
 
 /**
  * Database containing compiled expressions ready for scanning using the Scanner
@@ -112,11 +112,11 @@ public class Database implements Closeable {
         }
 
         try (
-                IntPointer nativeFlags = new IntPointer(flags);
-                IntPointer nativeIds = new IntPointer(ids);
-                PointerPointer<NativeDatabase> database = new PointerPointer<>(1);
-                hs_compile_error_t nativeCompileError = new hs_compile_error_t();
-                PointerPointer<hs_compile_error_t> error = new PointerPointer<>(nativeCompileError)) {
+                var nativeFlags = new IntPointer(flags);
+                var nativeIds = new IntPointer(ids);
+                var database = new PointerPointer<NativeDatabase>(1);
+                var nativeCompileError = new hs_compile_error_t();
+                var error = new PointerPointer<hs_compile_error_t>(nativeCompileError)) {
 
             int hsError = hs_compile_multi(nativeExpressions, nativeFlags, nativeIds, expressionsSize, HS_MODE_BLOCK, null, database, error);
 
@@ -145,7 +145,7 @@ public class Database implements Closeable {
             throw new IllegalStateException("Database has already been deallocated");
         }
 
-        try (SizeTPointer size = new SizeTPointer(1)) {
+        try (var size = new SizeTPointer(1)) {
             hs_database_size(database, size);
             return size.get();
         }
@@ -174,7 +174,7 @@ public class Database implements Closeable {
 
     /**
      * Saves the expressions and the compiled database to (possibly) distinct OutputStreams.
-     * All of the expressions are saved to expressionsOut before any of the database is saved to databaseOut so it's safe
+     * All the expressions are saved to expressionsOut before any of the database is saved to databaseOut so it's safe
      * to use the same backing OutputStream for both parameters.
      * Expression contexts are not saved.
      * Neither of the OutputStream is closed.
@@ -183,7 +183,7 @@ public class Database implements Closeable {
      * @param databaseOut    stream to write database to
      */
     public void save(OutputStream expressionsOut, OutputStream databaseOut) throws IOException {
-        DataOutputStream expressionsDataOut = new DataOutputStream(expressionsOut);
+        var expressionsDataOut = new DataOutputStream(expressionsOut);
         // How many expressions will be present. We need this to know when to stop reading.
         expressionsDataOut.writeInt(expressionCount);
         for (Expression expression : expressions.values()) {
@@ -206,7 +206,7 @@ public class Database implements Closeable {
         expressionsDataOut.flush();
 
         // Serialize the database into a contiguous native memory block
-        try (BytePointer bytePointer = new BytePointer(1); SizeTPointer size = new SizeTPointer(1)) {
+        try (var bytePointer = new BytePointer(1); SizeTPointer size = new SizeTPointer(1)) {
             int hsError = hs_serialize_database(database, bytePointer, size);
 
             if (hsError != 0) {
@@ -252,7 +252,7 @@ public class Database implements Closeable {
     public static Database load(InputStream expressionsIn, InputStream databaseIn) throws IOException {
         // DataInputStream doesn't buffer so it will only read as much as we ask for.
         // This makes it safe to use even if expressionsIn and databaseIn are the same streams.
-        DataInputStream expressionsDataIn = new DataInputStream(expressionsIn);
+        var expressionsDataIn = new DataInputStream(expressionsIn);
         int expressionCount = expressionsDataIn.readInt();
         List<Expression> expressions = new ArrayList<>(expressionCount);
 

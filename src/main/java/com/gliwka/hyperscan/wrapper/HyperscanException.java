@@ -1,6 +1,7 @@
 package com.gliwka.hyperscan.wrapper;
 
-import static com.gliwka.hyperscan.jni.hyperscan.*;
+
+import static org.bytedeco.hyperscan.global.hyperscan.*;
 
 public class HyperscanException extends RuntimeException {
     public HyperscanException(String message) {
