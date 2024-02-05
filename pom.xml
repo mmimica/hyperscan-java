@@ -167,18 +167,18 @@
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>hyperscan</artifactId>
-      <version>5.4.2-1.5.9-ib</version>
+      <version>5.4.2-1.5.9-ib1</version>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>hyperscan-platform</artifactId>
-      <version>5.4.2-1.5.9-ib</version>
+      <version>5.4.2-1.5.9-ib1</version>
       <classifier>linux-x86_64</classifier>
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
       <artifactId>javacpp-platform</artifactId>
-      <version>1.5.9</version>
+      <version>1.5.10</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
